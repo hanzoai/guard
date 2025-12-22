@@ -18,7 +18,9 @@ pii = ["regex"]
 rate-limit = ["governor"]
 content-filter = ["reqwest"]
 audit = ["tracing"]
-full = ["pii", "rate-limit", "content-filter", "audit"]
+proxy = ["hyper", "hyper-util", "http-body-util", "tower", "tower-http"]
+pty = ["portable-pty"]
+full = ["pii", "rate-limit", "content-filter", "audit", "proxy", "pty"]
 
 [dependencies]
 thiserror = "2.0"
@@ -26,6 +28,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 async-trait = "0.1"
 tokio = { version = "1", features = ["full"] }
+futures = "0.3"
 
 # UUID and timestamps
 uuid = { version = "1.0", features = ["v4", "serde"] }
@@ -43,6 +46,16 @@ reqwest = { version = "0.12", features = ["json"], optional = true }
 # Audit logging
 tracing = { version = "0.1", optional = true }
 
+# HTTP Proxy
+hyper = { version = "1.5", features = ["full"], optional = true }
+hyper-util = { version = "0.1", features = ["full"], optional = true }
+http-body-util = { version = "0.1", optional = true }
+tower = { version = "0.5", optional = true }
+tower-http = { version = "0.6", features = ["trace"], optional = true }
+
+# PTY wrapper (rlwrap-style)
+portable-pty = { version = "0.8", optional = true }
+
 [dev-dependencies]
 tokio-test = "0.4"
 
@@ -50,3 +63,18 @@ tokio-test = "0.4"
 name = "hanzo-guard"
 path = "src/main.rs"
 required-features = ["full"]
+
+[[bin]]
+name = "guard-proxy"
+path = "src/bin/proxy.rs"
+required-features = ["proxy"]
+
+[[bin]]
+name = "guard-wrap"
+path = "src/bin/wrap.rs"
+required-features = ["pty"]
+
+[[bin]]
+name = "guard-mcp"
+path = "src/bin/mcp_proxy.rs"
+required-features = ["pii"]

@@ -23,6 +23,42 @@ Every LLM application faces the same risks:
 User Input → [🛡️ Guard] → LLM → [🛡️ Guard] → Response
 ```
 
+## Deployment Modes
+
+Guard runs in **three deployment modes** to protect your AI stack:
+
+| Mode | Binary | Use Case |
+|------|--------|----------|
+| **API Proxy** | `guard-proxy` | Sits in front of OpenAI/Anthropic APIs |
+| **CLI Wrapper** | `guard-wrap` | Wraps `claude`, `codex`, etc. (rlwrap-style) |
+| **MCP Proxy** | `guard-mcp` | Filters MCP tool inputs/outputs |
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     GUARD DEPLOYMENT MODES                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  CLI Mode (guard-wrap):                                          │
+│  ┌──────┐    ┌────────┐    ┌───────────┐                        │
+│  │ User │───▶│ Guard  │───▶│ claude/   │                        │
+│  │      │◀───│ Filter │◀───│ codex     │                        │
+│  └──────┘    └────────┘    └───────────┘                        │
+│                                                                   │
+│  API Proxy Mode (guard-proxy):                                   │
+│  ┌──────┐    ┌────────┐    ┌───────────┐    ┌─────────┐        │
+│  │ App  │───▶│ Guard  │───▶│ localhost │───▶│ OpenAI/ │        │
+│  │      │◀───│ Proxy  │◀───│ :8080     │◀───│ Claude  │        │
+│  └──────┘    └────────┘    └───────────┘    └─────────┘        │
+│                                                                   │
+│  MCP Proxy Mode (guard-mcp):                                     │
+│  ┌──────┐    ┌────────┐    ┌───────────┐                        │
+│  │ LLM  │───▶│ Guard  │───▶│ MCP       │                        │
+│  │      │◀───│ Filter │◀───│ Server    │                        │
+│  └──────┘    └────────┘    └───────────┘                        │
+│                                                                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 ## Features
 
 | Feature | Description |
@@ -35,9 +71,68 @@ User Input → [🛡️ Guard] → LLM → [🛡️ Guard] → Response
 
 ## Quick Start
 
+### Install All Tools
+
 ```bash
-cargo add hanzo-guard
+cargo install hanzo-guard --features full
 ```
+
+This installs:
+- `hanzo-guard` - CLI sanitizer
+- `guard-proxy` - HTTP proxy for LLM APIs
+- `guard-wrap` - PTY wrapper for CLI tools
+- `guard-mcp` - MCP server filter
+
+### 1. API Proxy Mode
+
+Protect any LLM API by routing through guard:
+
+```bash
+# Start proxy in front of OpenAI
+guard-proxy --upstream https://api.openai.com --port 8080
+
+# Or Anthropic
+guard-proxy --upstream https://api.anthropic.com --port 8081
+```
+
+Then configure your client:
+
+```bash
+export OPENAI_BASE_URL=http://localhost:8080
+# Your app now has automatic PII protection
+```
+
+### 2. CLI Wrapper Mode
+
+Wrap any LLM CLI tool with automatic filtering:
+
+```bash
+# Wrap claude CLI
+guard-wrap claude
+
+# Wrap codex
+guard-wrap codex chat
+
+# Wrap any command
+guard-wrap -- python my_llm_script.py
+```
+
+All input you type is sanitized before reaching the tool.
+All output is sanitized before display.
+
+### 3. MCP Proxy Mode
+
+Filter MCP tool calls:
+
+```bash
+# Wrap an MCP server
+guard-mcp -- npx @hanzo/mcp serve
+
+# With verbose logging
+guard-mcp -v -- python -m mcp_server
+```
+
+### 4. Library Usage
 
 ```rust
 use hanzo_guard::{Guard, GuardConfig, SanitizeResult};
@@ -69,12 +164,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-## CLI Tool
+### 5. CLI Tool
 
 ```bash
-# Install
-cargo install hanzo-guard --features full
-
 # Pipe text through guard
 echo "Contact me at ceo@company.com, SSN 123-45-6789" | hanzo-guard
 # Output: Contact me at [REDACTED:EMAIL], SSN [REDACTED:SSN]
@@ -153,6 +245,8 @@ let guard = Guard::new(config);
 | `rate-limit` | ✅ | Token bucket rate limiting |
 | `content-filter` | ❌ | ML-based content classification |
 | `audit` | ✅ | Structured audit logging |
+| `proxy` | ❌ | HTTP proxy server |
+| `pty` | ❌ | PTY wrapper (rlwrap-style) |
 
 ```toml
 # Minimal (PII only)
@@ -161,7 +255,10 @@ hanzo-guard = { version = "0.1", default-features = false, features = ["pii"] }
 # Standard (PII + rate limiting + audit)
 hanzo-guard = "0.1"
 
-# Full suite
+# With proxy mode
+hanzo-guard = { version = "0.1", features = ["proxy"] }
+
+# Full suite (all features + binaries)
 hanzo-guard = { version = "0.1", features = ["full"] }
 ```
 
@@ -175,6 +272,7 @@ Sub-millisecond latency for real-time protection:
 | Injection Check | ~20μs | 50K+ ops/sec |
 | Combined Sanitize | ~100μs | 10K+ ops/sec |
 | Rate Limit Check | ~1μs | 1M+ ops/sec |
+| Proxy Overhead | ~200μs | 5K+ req/sec |
 
 *Benchmarked on Apple M1 Max*
 
@@ -194,7 +292,7 @@ Guard classifies threats into actionable categories:
 
 ## Integration Examples
 
-### With OpenAI
+### With OpenAI (Direct)
 
 ```rust
 async fn safe_completion(prompt: &str) -> Result<String> {
@@ -217,7 +315,30 @@ async fn safe_completion(prompt: &str) -> Result<String> {
 }
 ```
 
-### As Middleware
+### With OpenAI (Proxy)
+
+```bash
+# Start guard proxy
+guard-proxy --upstream https://api.openai.com --port 8080 &
+
+# Point OpenAI client to proxy
+export OPENAI_BASE_URL=http://localhost:8080
+
+# All API calls are now automatically filtered!
+python my_openai_app.py
+```
+
+### With Claude Code (Wrapper)
+
+```bash
+# Instead of running claude directly
+guard-wrap claude
+
+# Everything you type and see is filtered
+# PII redacted, injection attempts blocked
+```
+
+### As Axum Middleware
 
 ```rust
 // Axum middleware example
