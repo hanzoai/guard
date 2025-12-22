@@ -97,13 +97,13 @@ impl ContentFilter {
             .timeout(std::time::Duration::from_millis(self.config.timeout_ms));
 
         if let Some(ref api_key) = self.config.api_key {
-            req = req.header("Authorization", format!("Bearer {}", api_key));
+            req = req.header("Authorization", format!("Bearer {api_key}"));
         }
 
         let response = req
             .send()
             .await
-            .map_err(|e| GuardError::ContentFilterError(format!("API request failed: {}", e)))?;
+            .map_err(|e| GuardError::ContentFilterError(format!("API request failed: {e}")))?;
 
         if !response.status().is_success() {
             return Err(GuardError::ContentFilterError(format!(
@@ -113,7 +113,7 @@ impl ContentFilter {
         }
 
         let guard_response: GuardResponse = response.json().await.map_err(|e| {
-            GuardError::ContentFilterError(format!("Failed to parse response: {}", e))
+            GuardError::ContentFilterError(format!("Failed to parse response: {e}"))
         })?;
 
         let safety_level = match guard_response.safety.to_lowercase().as_str() {
