@@ -1,0 +1,52 @@
+[package]
+name = "hanzo-guard"
+version = "0.1.0"
+edition = "2021"
+authors = ["Hanzo AI <dev@hanzo.ai>"]
+description = "Fast LLM I/O sanitization - PII redaction, prompt injection detection, rate limiting"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/hanzoai/guard"
+homepage = "https://hanzoai.github.io/guard"
+documentation = "https://docs.rs/hanzo-guard"
+readme = "README.md"
+keywords = ["llm", "sanitization", "pii", "security", "ai"]
+categories = ["development-tools", "web-programming", "text-processing"]
+
+[features]
+default = ["pii", "rate-limit", "audit"]
+pii = ["regex"]
+rate-limit = ["governor"]
+content-filter = ["reqwest"]
+audit = ["tracing"]
+full = ["pii", "rate-limit", "content-filter", "audit"]
+
+[dependencies]
+thiserror = "2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+async-trait = "0.1"
+tokio = { version = "1", features = ["full"] }
+
+# UUID and timestamps
+uuid = { version = "1.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# PII detection
+regex = { version = "1.10", optional = true }
+
+# Rate limiting
+governor = { version = "0.8", optional = true }
+
+# Content filtering (external API)
+reqwest = { version = "0.12", features = ["json"], optional = true }
+
+# Audit logging
+tracing = { version = "0.1", optional = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[[bin]]
+name = "hanzo-guard"
+path = "src/main.rs"
+required-features = ["full"]
