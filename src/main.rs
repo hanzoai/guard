@@ -5,7 +5,7 @@
 //!   hanzo-guard --file input.txt
 
 use hanzo_guard::{Guard, GuardConfig, SanitizeResult};
-use std::io::{self, BufRead, Write};
+use std::io::{self, BufRead};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -38,11 +38,9 @@ fn main() {
         // Read from stdin
         let stdin = io::stdin();
         let mut input = String::new();
-        for line in stdin.lock().lines() {
-            if let Ok(line) = line {
-                input.push_str(&line);
-                input.push('\n');
-            }
+        for line in stdin.lock().lines().map_while(Result::ok) {
+            input.push_str(&line);
+            input.push('\n');
         }
         input
     };
@@ -78,20 +76,20 @@ fn main() {
                     println!("{}", serde_json::to_string_pretty(&output).unwrap());
                 } else {
                     match result {
-                        SanitizeResult::Clean(text) => print!("{}", text),
+                        SanitizeResult::Clean(text) => print!("{text}"),
                         SanitizeResult::Redacted { text, redactions } => {
                             eprintln!("# Redacted {} items", redactions.len());
-                            print!("{}", text);
+                            print!("{text}");
                         }
                         SanitizeResult::Blocked { reason, .. } => {
-                            eprintln!("BLOCKED: {}", reason);
+                            eprintln!("BLOCKED: {reason}");
                             std::process::exit(2);
                         }
                     }
                 }
             }
             Err(e) => {
-                eprintln!("Error: {}", e);
+                eprintln!("Error: {e}");
                 std::process::exit(1);
             }
         }
