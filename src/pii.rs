@@ -1,17 +1,13 @@
 //! PII (Personally Identifiable Information) detection and redaction
 
 use crate::config::PiiConfig;
-
-use crate::types::Redaction;
-#[cfg(feature = "pii")]
-use crate::types::RedactionType;
+use crate::types::{Redaction, RedactionType};
 
 #[cfg(feature = "pii")]
 use regex::Regex;
 
 /// PII detector for identifying and redacting sensitive information
 pub struct PiiDetector {
-    #[allow(dead_code)]
     config: PiiConfig,
     #[cfg(feature = "pii")]
     patterns: PiiPatterns,
@@ -213,7 +209,6 @@ impl PiiDetector {
     }
 
     /// Format redaction placeholder
-    #[cfg(feature = "pii")]
     fn format_redaction(&self, redaction_type: RedactionType) -> String {
         self.config
             .redaction_format
@@ -222,7 +217,6 @@ impl PiiDetector {
 }
 
 /// Hash a value for audit logging (without storing the original)
-#[cfg(feature = "pii")]
 fn hash_value(value: &str) -> String {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
@@ -260,7 +254,6 @@ fn luhn_check(number: &str) -> bool {
 }
 
 /// Remove overlapping redactions (keep the first one)
-#[cfg(feature = "pii")]
 fn remove_overlaps(redactions: &mut Vec<Redaction>) {
     if redactions.len() < 2 {
         return;
@@ -276,7 +269,7 @@ fn remove_overlaps(redactions: &mut Vec<Redaction>) {
     }
 }
 
-#[cfg(all(test, feature = "pii"))]
+#[cfg(test)]
 mod tests {
     use super::*;
 
