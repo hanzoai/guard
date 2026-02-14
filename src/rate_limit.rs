@@ -1,15 +1,9 @@
 //! Rate limiting for Guard
 
 use crate::config::RateLimitConfig;
-#[cfg(not(feature = "rate-limit"))]
-use crate::error::Result;
-#[cfg(feature = "rate-limit")]
 use crate::error::{GuardError, Result};
-#[cfg(feature = "rate-limit")]
 use std::collections::HashMap;
-#[cfg(feature = "rate-limit")]
 use std::sync::Arc;
-#[cfg(feature = "rate-limit")]
 use tokio::sync::RwLock;
 
 #[cfg(feature = "rate-limit")]
@@ -17,20 +11,24 @@ use governor::{Quota, RateLimiter as GovernorLimiter};
 #[cfg(feature = "rate-limit")]
 use std::num::NonZeroU32;
 
-/// Type alias for the Governor rate limiter
-#[cfg(feature = "rate-limit")]
-type InnerLimiter = GovernorLimiter<
-    governor::state::NotKeyed,
-    governor::state::InMemoryState,
-    governor::clock::DefaultClock,
->;
-
 /// Rate limiter for API requests
 pub struct RateLimiter {
-    #[allow(dead_code)]
     config: RateLimitConfig,
     #[cfg(feature = "rate-limit")]
-    limiters: Arc<RwLock<HashMap<String, Arc<InnerLimiter>>>>,
+    limiters: Arc<
+        RwLock<
+            HashMap<
+                String,
+                Arc<
+                    GovernorLimiter<
+                        governor::state::NotKeyed,
+                        governor::state::InMemoryState,
+                        governor::clock::DefaultClock,
+                    >,
+                >,
+            >,
+        >,
+    >,
 }
 
 impl RateLimiter {
@@ -69,7 +67,16 @@ impl RateLimiter {
 
     /// Get or create a limiter for a user
     #[cfg(feature = "rate-limit")]
-    async fn get_or_create_limiter(&self, user_id: &str) -> Arc<InnerLimiter> {
+    async fn get_or_create_limiter(
+        &self,
+        user_id: &str,
+    ) -> Arc<
+        GovernorLimiter<
+            governor::state::NotKeyed,
+            governor::state::InMemoryState,
+            governor::clock::DefaultClock,
+        >,
+    > {
         // Try to get existing limiter
         {
             let limiters = self.limiters.read().await;

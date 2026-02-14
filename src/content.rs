@@ -1,8 +1,11 @@
 //! Content filtering via Zen Guard API
 
 use crate::config::ContentFilterConfig;
-use crate::error::{GuardError, Result, SafetyCategory};
+#[cfg(feature = "content-filter")]
+use crate::error::GuardError;
+use crate::error::{Result, SafetyCategory};
 use crate::types::SafetyLevel;
+#[cfg(feature = "content-filter")]
 use serde::{Deserialize, Serialize};
 
 /// Content filter using Zen Guard models
@@ -13,13 +16,13 @@ pub struct ContentFilter {
 }
 
 /// Request to Zen Guard API
-#[allow(dead_code)]
+#[cfg(feature = "content-filter")]
 #[derive(Debug, Serialize)]
 struct GuardRequest {
     messages: Vec<GuardMessage>,
 }
 
-#[allow(dead_code)]
+#[cfg(feature = "content-filter")]
 #[derive(Debug, Serialize)]
 struct GuardMessage {
     role: String,
@@ -27,7 +30,7 @@ struct GuardMessage {
 }
 
 /// Response from Zen Guard API
-#[allow(dead_code)]
+#[cfg(feature = "content-filter")]
 #[derive(Debug, Deserialize)]
 struct GuardResponse {
     safety: String,
@@ -97,13 +100,13 @@ impl ContentFilter {
             .timeout(std::time::Duration::from_millis(self.config.timeout_ms));
 
         if let Some(ref api_key) = self.config.api_key {
-            req = req.header("Authorization", format!("Bearer {api_key}"));
+            req = req.header("Authorization", format!("Bearer {}", api_key));
         }
 
         let response = req
             .send()
             .await
-            .map_err(|e| GuardError::ContentFilterError(format!("API request failed: {e}")))?;
+            .map_err(|e| GuardError::ContentFilterError(format!("API request failed: {}", e)))?;
 
         if !response.status().is_success() {
             return Err(GuardError::ContentFilterError(format!(
@@ -113,7 +116,7 @@ impl ContentFilter {
         }
 
         let guard_response: GuardResponse = response.json().await.map_err(|e| {
-            GuardError::ContentFilterError(format!("Failed to parse response: {e}"))
+            GuardError::ContentFilterError(format!("Failed to parse response: {}", e))
         })?;
 
         let safety_level = match guard_response.safety.to_lowercase().as_str() {
@@ -182,7 +185,7 @@ impl ContentFilter {
 }
 
 /// Parse category string to enum
-#[allow(dead_code)]
+#[cfg(any(feature = "content-filter", test))]
 fn parse_category(category: &str) -> Option<SafetyCategory> {
     match category.to_lowercase().as_str() {
         "violent" => Some(SafetyCategory::Violent),

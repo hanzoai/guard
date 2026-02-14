@@ -1,6 +1,6 @@
 [package]
 name = "hanzo-guard"
-version = "0.1.0"
+version = "0.1.3"
 edition = "2021"
 authors = ["Hanzo AI <dev@hanzo.ai>"]
 description = "Fast LLM I/O sanitization - PII redaction, prompt injection detection, rate limiting"

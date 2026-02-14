@@ -3,7 +3,6 @@
 use crate::config::AuditConfig;
 use crate::error::SafetyCategory;
 use crate::types::{AuditEntry, AuditResult, Direction, GuardContext, SanitizeResult};
-
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
@@ -83,6 +82,8 @@ impl AuditLogger {
             reason = reason,
             "Request blocked"
         );
+        #[cfg(not(feature = "audit"))]
+        let _ = reason;
 
         self.emit(&entry, content);
     }
@@ -140,7 +141,7 @@ impl AuditLogger {
                     .open(path)
                     .and_then(|mut f| {
                         use std::io::Write;
-                        writeln!(f, "{json}")
+                        writeln!(f, "{}", json)
                     });
             }
         }
