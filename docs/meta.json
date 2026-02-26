@@ -1,0 +1,4 @@
+{
+  "title": "Hanzo Guard",
+  "description": "LLM I/O sanitization -- PII redaction, prompt injection detection, content filtering, rate limiting, audit logging"
+}
