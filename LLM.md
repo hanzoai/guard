@@ -1,4 +1,4 @@
-# LLM.md - Hanzo Guard
+# Hanzo Guard
 
 ## Overview
 **The essential safety layer for LLM applications.** Protect your AI from unsafe inputs and prevent sensitive data leakage—before it's too late.
