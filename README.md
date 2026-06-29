@@ -1,3 +1,5 @@
+<p align="center"><img src=".github/hero.svg" alt="guard" width="880"></p>
+
 # Hanzo Guard 🛡️
 
 [![Crates.io](https://img.shields.io/crates/v/hanzo-guard.svg)](https://crates.io/crates/hanzo-guard)
