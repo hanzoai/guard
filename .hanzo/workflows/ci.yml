@@ -5,7 +5,8 @@
 #
 # One job, not five: every job pays for its own toolchain install and its own
 # cold target/, and on one runner five cold builds of the same crate buy nothing
-# that five steps sharing one target/ do not already give.
+# that five steps sharing one target/ do not already give. Each check still
+# reports on its own — a formatting nit must not hide a failing test.
 name: CI
 
 on:
@@ -39,14 +40,17 @@ jobs:
         run: cargo fmt --check
 
       - name: Clippy
+        if: ${{ !cancelled() }}
         run: cargo clippy --all-features -- -D warnings
 
       - name: Run tests
+        if: ${{ !cancelled() }}
         run: cargo test --all-features
 
       # The feature flags are the crate's public surface: default off has to
       # compile and pass on its own, or a dependent picking features breaks.
       - name: Build and test (no default features)
+        if: ${{ !cancelled() }}
         run: |
           cargo build --no-default-features
           cargo test --no-default-features
@@ -54,4 +58,5 @@ jobs:
       # A compile check on the doc comments. The published reference is built
       # and shipped by deploy.yml.
       - name: Build docs
+        if: ${{ !cancelled() }}
         run: cargo doc --all-features --no-deps
