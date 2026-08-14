@@ -1,0 +1,57 @@
+# The crate's checks, restored from .github/workflows/ci.yml. The forge collects
+# workflows from the first of its workflow directories that exists, and this repo
+# has had .hanzo/workflows since deploy.yml landed, so the checks were sitting in
+# a directory nothing reads. They live here now, next to the deploy they gate.
+#
+# One job, not five: every job pays for its own toolchain install and its own
+# cold target/, and on one runner five cold builds of the same crate buy nothing
+# that five steps sharing one target/ do not already give.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    runs-on: [hanzo-build-linux-amd64]
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      # rustup is the toolchain's own installer and needs nothing but curl —
+      # the same step deploy.yml uses to build the docs.
+      - name: rust toolchain
+        run: |
+          set -euo pipefail
+          command -v rustup >/dev/null || curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+            | sh -s -- -y --profile minimal --default-toolchain stable
+          . "$HOME/.cargo/env" 2>/dev/null || true
+          rustup component add clippy rustfmt
+          dirname "$(command -v cargo)" >> "$GITHUB_PATH"
+
+      - name: Format check
+        run: cargo fmt --check
+
+      - name: Clippy
+        run: cargo clippy --all-features -- -D warnings
+
+      - name: Run tests
+        run: cargo test --all-features
+
+      # The feature flags are the crate's public surface: default off has to
+      # compile and pass on its own, or a dependent picking features breaks.
+      - name: Build and test (no default features)
+        run: |
+          cargo build --no-default-features
+          cargo test --no-default-features
+
+      # A compile check on the doc comments. The published reference is built
+      # and shipped by deploy.yml.
+      - name: Build docs
+        run: cargo doc --all-features --no-deps
