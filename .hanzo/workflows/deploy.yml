@@ -8,9 +8,9 @@ name: deploy
 # CI/CD, outside the Sites plane, and outside our analytics, so it is gone.
 #
 #   cargo doc --no-deps -> target/doc
-#     -> sitedeploy
+#     -> site
 #
-# The publish mechanics are NOT here. They are bin/sitedeploy in hanzoai/ci,
+# The publish mechanics are NOT here. They are bin/site in hanzoai/ci,
 # reached through its action, and every static surface in the fleet calls that one
 # script — ensure-project, enqueue, presigned per-file upload, complete. A
 # contract transcribed per repo is a contract that drifts, and this file used to
@@ -103,9 +103,10 @@ jobs:
       # the standing shared-bucket credential the grant replaced, and it could
       # overwrite every other org's site.
       - name: Publish to the Sites plane
-        uses: hanzoai/ci/.github/actions/sitedeploy@v1
+        uses: hanzoai/ci/.github/actions/site@v1
         with:
           slug: guard
           dir: target/doc
         env:
-          HANZO_DEPLOY_TOKEN: ${{ secrets.HANZO_DEPLOY_TOKEN }}
+          KMS_CLIENT_ID: ${{ secrets.KMS_CLIENT_ID }}
+          KMS_CLIENT_SECRET: ${{ secrets.KMS_CLIENT_SECRET }}
