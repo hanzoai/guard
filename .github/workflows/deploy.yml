@@ -26,7 +26,7 @@ name: deploy
 on:
   push:
     branches: [main]
-    paths: ['src/**', 'Cargo.toml', 'README.md', '.hanzo/workflows/deploy.yml']
+    paths: ['src/**', 'Cargo.toml', 'README.md', '.github/workflows/deploy.yml']
   workflow_dispatch:
 
 concurrency:
